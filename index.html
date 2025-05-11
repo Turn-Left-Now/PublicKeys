@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Turn Left PAC - Public Keys</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--fg:#1a1a1a;--accent:#0060df;--bg:#f9f9fb;--border:#d0d0d7}
+@media (prefers-color-scheme:dark){
+  :root{--fg:#e8e8e8;--bg:#141414;--border:#333;--accent:#57a3ff}
+}
+*{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+body{margin:0 auto;max-width:70rem;padding:2rem;line-height:1.55;
+     color:var(--fg);background:var(--bg)}
+h1{margin-top:0;color:var(--accent)}
+section{margin-top:2.5rem}
+.staff-name{font-size:1.3rem;font-weight:600;margin-bottom:.3rem}
+.addresses{font-size:.9rem;color:#666}
+table{width:100%;border-collapse:collapse;margin-top:.6rem}
+th,td{padding:.55rem .7rem;border:1px solid var(--border);font-size:.95rem}
+th{background:#ececf1;text-align:left}
+.btn{cursor:pointer;border:none;background:transparent;padding:0 .3rem}
+.btn svg{width:1.1rem;height:1.1rem;fill:var(--accent)}
+.notice{font-size:.85rem;color:#666}
+</style>
+</head>
+<body>
+
+<h1>Official Public Keys</h1>
+
+<p>This page lists every <strong>authorized public-key</strong> used by staff,
+automation, and the organisation itself.  
+Always verify you’re viewing it at
+<code>https://turnleftpac.org/keys/</code> (or the signed commit in
+<code>github.com/Turn-Left-Now/PublicKeys</code>).</p>
+
+<div id="directory"></div>
+
+<p class="notice">
+  <em>Tip:</em> Click&nbsp;<svg width="14" height="14"><path d="M3 2h8a1 1 0 0 1 1 1v8l-3-3H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"></path></svg>
+  to copy the SHA-256 fingerprint.
+</p>
+
+<h2>Contact</h2>
+<p>Missing key?  E-mail
+<a href="mailto:security@turnleftpac.org">security@turnleftpac.org</a> from your
+org address <em>and sign</em> the message with the key you want listed.</p>
+
+<script>
+/* ----------  Put real data here ---------------------- */
+const DIRECTORY = [
+  {
+    name: "Samantha Boucher - Managing Director",
+    addresses: ["samantha@turnleftpac.org", "me@samanthaboucher.com", "samantha@resistmap.com"],
+    keys: [
+      {
+        file: "publickey_samanthaboucher_personal-2025.asc",
+        desc: "Personal GPG key (me@samanthaboucher.com)",
+        expires: "2026-06-15",
+        sha256: "25df21fdee57be033e28dcad21824bfe35e474de"
+      },
+      {
+        file: "publickey_samanthaboucher_resistmap-2025.asc",
+        desc: "ResistMap Domain GPG Key (samantha@resistmap.com)",
+        expires: "2026-06-15",
+        sha256: "8bd10431169b150fd2fed5c34a298fc94b92155a"
+      },
+    ]
+  }
+    ]
+  }
+];
+
+// Auto-add any dkim-*.txt files that the bot drops in
+fetch('./')
+  .then(r => r.text())
+  .then(html => {
+    const matches = [...html.matchAll(/dkim-[^"]+\.txt/g)];
+    if (!matches.length) return;         // nothing yet
+    const auto = {
+      name: "Domain DKIM selectors (live mirror)",
+      addresses: ["turnleftpac.org"],
+      keys: matches.map(m => ({
+        file: m[0],
+        desc: "TXT record mirrored from DNS",
+        expires: "—",
+        sha256: "—"
+      }))
+    };
+    DIRECTORY.push(auto);
+    build();   // re-render the table with the new entry
+  });
+
+function build() {
+  const root = document.getElementById("directory");
+  DIRECTORY.forEach(s => {
+    const sec = document.createElement("section");
+    sec.innerHTML = `<div class="staff-name">${s.name}</div>
+      <div class="addresses">${s.addresses.join(", ")}</div>`;
+    const table = document.createElement("table");
+    table.innerHTML = `
+      <thead><tr><th>Key&nbsp;file</th><th>Description / Expiry</th>
+      <th>SHA-256&nbsp;fingerprint</th></tr></thead><tbody></tbody>`;
+    s.keys.forEach(k => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><a href="${k.file}" download>${k.file}</a></td>
+        <td>${k.desc}${k.expires ? `<br><small>Expires ${k.expires}</small>` : ""}</td>
+        <td><code>${k.sha256}</code>
+            <button class="btn" title="Copy fingerprint" aria-label="Copy"
+              onclick="copy('${k.sha256}')">
+              <svg viewBox="0 0 14 14"><path d="M3 1h6a1 1 0 0 1 1 1v2h-1V2H3v8h2v1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm3 3h6a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm0 1v8h6V5H6z"/></svg>
+            </button>
+        </td>`;
+      table.querySelector("tbody").appendChild(tr);
+    });
+    sec.appendChild(table);
+    root.appendChild(sec);
+  });
+}
+  
+function copy(txt){
+  navigator.clipboard?.writeText(txt).then(()=>alert("Fingerprint copied"))}
+document.addEventListener("DOMContentLoaded", build);
+</script>
+
+</body>
+</html>
