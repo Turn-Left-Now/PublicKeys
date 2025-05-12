@@ -1,0 +1,34 @@
+# .github/workflows/dkim-sync.yml
+name: Sync DKIM TXT records
+on:
+  schedule: [{cron: "0 3 * * *"}]   # every night @ 03:00 UTC
+  workflow_dispatch:               # lets you run it by hand
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      DOMAIN: "turnleftpac.org"
+      SELECTORS: "s1 s2 sb sb1"
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Fetch DKIM records
+      run: |
+        set -e
+        for SEL in $SELECTORS; do
+          dig +short "${SEL}._domainkey.${DOMAIN}" TXT \
+            | sed 's/^"//;s/"$//' > "dkim-${SEL}.txt"
+        done
+
+    - name: Commit if changed
+      run: |
+        if git status --porcelain | grep -q .; then
+          git config user.name  "DKIM Sync Bot"
+          git config user.email "bot@${DOMAIN}"
+          git add dkim-*.txt
+          git commit -m "chore: auto-sync DKIM TXT"
+          git push
+        else
+          echo "DKIM already up-to-date"
+        fi
